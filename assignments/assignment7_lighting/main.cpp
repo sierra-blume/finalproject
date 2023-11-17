@@ -14,10 +14,11 @@
 #include <ew/transform.h>
 #include <ew/camera.h>
 #include <ew/cameraController.h>
+#include <ew/external/stb_image.h>
+#include <iostream>
 
 struct Vertex {
 	float x, y, z;
-	float u, v;
 };
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -29,40 +30,6 @@ int SCREEN_HEIGHT = 720;
 
 float prevTime;
 ew::Vec3 bgColor = ew::Vec3(0.1f);
-
-Vertex skyboxVertices[] = //Each vertex is a corner of the cubemap
-{
-	-1.0f, -1.0f,  1.0f, 0.0f, 0.0f,//     7--------6
-	 1.0f, -1.0f,  1.0f, 0.0f, 0.0f,//    /|       /|
-	 1.0f, -1.0f, -1.0f, 0.0f, 0.0f,//   4--------5 |
-	-1.0f, -1.0f, -1.0f, 0.0f, 0.0f,//   | |      | |
-	-1.0f,  1.0f,  1.0f, 0.0f, 0.0f,//   | 3------|-2
-	 1.0f,  1.0f,  1.0f, 0.0f, 0.0f,//   |/       |/
-	 1.0f,  1.0f, -1.0f, 0.0f, 0.0f //   0--------1
-};
-
-unsigned short skyboxIndices[] =
-{
-
-	//Right
-	2, 6, 5,
-	5, 1, 2,
-	//Left
-	0, 4, 7,
-	7, 3, 0,
-	//Top
-	4, 5, 6,
-	6, 7, 4,
-	//Bottom
-	0, 3, 2,
-	2, 1, 0,
-	//Back
-	0, 1, 5,
-	5, 4, 0,
-	//Front
-	3, 7, 6,
-	6, 2, 3
-};
 
 ew::Camera camera;
 ew::CameraController cameraController;
@@ -101,7 +68,7 @@ int main() {
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
 	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
 
-	unsigned int skyboxVAO = createVAO(skyboxVertices, 8, skyboxIndices, 36);
+	ew::MeshData skybox = ew::createCube(5);
 
 	std::string facesCubemap[6] =
 	{
@@ -122,20 +89,45 @@ int main() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-	//Create cube
-	ew::Mesh cubeMesh(ew::createCube(1.0f));
-	ew::Mesh planeMesh(ew::createPlane(5.0f, 5.0f, 10));
-	ew::Mesh sphereMesh(ew::createSphere(0.5f, 64));
-	ew::Mesh cylinderMesh(ew::createCylinder(0.5f, 1.0f, 32));
+	for (unsigned int i = 0; i < 6; i++) {
+		int width, height, nrChannels;
+		unsigned char* data = stbi_load(facesCubemap[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data) {
+			stbi_set_flip_vertically_on_load(false);
+			glTexImage2D
+			(
+				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0,
+				GL_RGB,
+				width,
+				height,
+				0,
+				GL_RGB,
+				GL_UNSIGNED_BYTE,
+				data
+			);
+			stbi_image_free(data);
+		}
+		else {
+			std::cout << "Failed to load texture: " << facesCubemap[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
 
-	//Initialize transforms
-	ew::Transform cubeTransform;
-	ew::Transform planeTransform;
-	ew::Transform sphereTransform;
-	ew::Transform cylinderTransform;
-	planeTransform.position = ew::Vec3(0, -1.0, 0);
-	sphereTransform.position = ew::Vec3(-1.5f, 0.0f, 0.0f);
-	cylinderTransform.position = ew::Vec3(1.5f, 0.0f, 0.0f);
+	////Create cube
+	//ew::Mesh cubeMesh(ew::createCube(1.0f));
+	//ew::Mesh planeMesh(ew::createPlane(5.0f, 5.0f, 10));
+	//ew::Mesh sphereMesh(ew::createSphere(0.5f, 64));
+	//ew::Mesh cylinderMesh(ew::createCylinder(0.5f, 1.0f, 32));
+
+	////Initialize transforms
+	//ew::Transform cubeTransform;
+	//ew::Transform planeTransform;
+	//ew::Transform sphereTransform;
+	//ew::Transform cylinderTransform;
+	//planeTransform.position = ew::Vec3(0, -1.0, 0);
+	//sphereTransform.position = ew::Vec3(-1.5f, 0.0f, 0.0f);
+	//cylinderTransform.position = ew::Vec3(1.5f, 0.0f, 0.0f);
 
 	resetCamera(camera,cameraController);
 
@@ -159,18 +151,18 @@ int main() {
 		shader.setInt("_Texture", 0);
 		shader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
 
-		//Draw shapes
-		shader.setMat4("_Model", cubeTransform.getModelMatrix());
-		cubeMesh.draw();
+		////Draw shapes
+		//shader.setMat4("_Model", cubeTransform.getModelMatrix());
+		//cubeMesh.draw();
 
-		shader.setMat4("_Model", planeTransform.getModelMatrix());
-		planeMesh.draw();
+		//shader.setMat4("_Model", planeTransform.getModelMatrix());
+		//planeMesh.draw();
 
-		shader.setMat4("_Model", sphereTransform.getModelMatrix());
-		sphereMesh.draw();
+		//shader.setMat4("_Model", sphereTransform.getModelMatrix());
+		//sphereMesh.draw();
 
-		shader.setMat4("_Model", cylinderTransform.getModelMatrix());
-		cylinderMesh.draw();
+		//shader.setMat4("_Model", cylinderTransform.getModelMatrix());
+		//cylinderMesh.draw();
 
 		//TODO: Render point lights
 
