@@ -66,7 +66,11 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
+	ew::Shader skyboxShader("assets/skybox.vert", "assets/skybox.frag");
 	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
+
+	skyboxShader.use();
+	glUniform1i(glGetUniformLocation(skyboxShader.getID(), "skybox"), 0);
 
 	ew::MeshData skybox = ew::createCube(5);
 
@@ -165,6 +169,16 @@ int main() {
 		//cylinderMesh.draw();
 
 		//TODO: Render point lights
+
+		//Draw the skybox
+		glDepthFunc(GL_LEQUAL);
+
+		skyboxShader.use();
+		ew::Mat4 view = ew::Mat4(1.0f);
+		ew::Mat4 projection = ew::Mat4(1.0f);
+		view = ew::Mat4(ew::LookAt(camera.position, camera.target, ew::Vec3(0, 1, 0)));
+		projection = ew::Perspective(ew::Radians(45.0f), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1, 100.f);
+		//glUniformMatrix4fv(glGetUniformLocation(skyboxShader.getID(), "view"), 1, GL_FALSE, )
 
 		//Render UI
 		{
