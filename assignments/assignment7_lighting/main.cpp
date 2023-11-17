@@ -15,14 +15,54 @@
 #include <ew/camera.h>
 #include <ew/cameraController.h>
 
+struct Vertex {
+	float x, y, z;
+	float u, v;
+};
+
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void resetCamera(ew::Camera& camera, ew::CameraController& cameraController);
+unsigned int createVAO(Vertex* vertexData, int numVertices, unsigned short* indicesData, int numIndices);
 
 int SCREEN_WIDTH = 1080;
 int SCREEN_HEIGHT = 720;
 
 float prevTime;
 ew::Vec3 bgColor = ew::Vec3(0.1f);
+
+Vertex skyboxVertices[] = //Each vertex is a corner of the cubemap
+{
+	-1.0f, -1.0f,  1.0f, 0.0f, 0.0f,//     7--------6
+	 1.0f, -1.0f,  1.0f, 0.0f, 0.0f,//    /|       /|
+	 1.0f, -1.0f, -1.0f, 0.0f, 0.0f,//   4--------5 |
+	-1.0f, -1.0f, -1.0f, 0.0f, 0.0f,//   | |      | |
+	-1.0f,  1.0f,  1.0f, 0.0f, 0.0f,//   | 3------|-2
+	 1.0f,  1.0f,  1.0f, 0.0f, 0.0f,//   |/       |/
+	 1.0f,  1.0f, -1.0f, 0.0f, 0.0f //   0--------1
+};
+
+unsigned short skyboxIndices[] =
+{
+
+	//Right
+	2, 6, 5,
+	5, 1, 2,
+	//Left
+	0, 4, 7,
+	7, 3, 0,
+	//Top
+	4, 5, 6,
+	6, 7, 4,
+	//Bottom
+	0, 3, 2,
+	2, 1, 0,
+	//Back
+	0, 1, 5,
+	5, 4, 0,
+	//Front
+	3, 7, 6,
+	6, 2, 3
+};
 
 ew::Camera camera;
 ew::CameraController cameraController;
@@ -60,6 +100,18 @@ int main() {
 
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
 	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
+
+	unsigned int skyboxVAO = createVAO(skyboxVertices, 8, skyboxIndices, 36);
+
+	std::string facesCubemap[6] =
+	{
+		"assets/skybox/right.jpg",
+		"assets/skybox/left.jpg",
+		"assets/skybox/top.jpg",
+		"assets/skybox/bottom.jpg",
+		"assets/skybox/back.jpg",
+		"assets/skybox/front.jpg"
+	};
 
 	//Create cube
 	ew::Mesh cubeMesh(ew::createCube(1.0f));
@@ -171,4 +223,30 @@ void resetCamera(ew::Camera& camera, ew::CameraController& cameraController) {
 	cameraController.pitch = 0.0f;
 }
 
+unsigned int createVAO(Vertex* vertexData, int numVertices, unsigned short* indicesData, int numIndices) {
+	unsigned int vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 
+	//Vertex Buffer Object 
+	unsigned int vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * numVertices, vertexData, GL_STATIC_DRAW);
+
+	//Element Buffer Object
+	unsigned int ebo;
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short) * numIndices, indicesData, GL_STATIC_DRAW);
+
+	//Position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, x));
+	glEnableVertexAttribArray(0);
+
+	//UV attribute
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(offsetof(Vertex, u)));
+	glEnableVertexAttribArray(1);
+
+	return vao;
+}
