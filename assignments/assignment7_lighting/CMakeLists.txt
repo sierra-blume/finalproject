@@ -17,7 +17,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/assets/
 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/)
 
 install(FILES ${ASSIGNMENT7_INC} DESTINATION include/assignment7_lighting)
-add_executable(assignment7_lighting ${ASSIGNMENT7_SRC} ${ASSIGNMENT7_INC} ${ASSIGNMENT7_ASSETS})
+add_executable(assignment7_lighting ${ASSIGNMENT7_SRC} ${ASSIGNMENT7_INC} ${ASSIGNMENT7_ASSETS} "terrainMain.cpp")
 target_link_libraries(assignment7_lighting PUBLIC core IMGUI)
 target_include_directories(assignment7_lighting PUBLIC ${CORE_INC_DIR} ${stb_INCLUDE_DIR})
 
