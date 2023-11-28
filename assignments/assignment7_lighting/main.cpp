@@ -19,6 +19,7 @@
 
 struct Vertex {
 	float x, y, z;
+	float u, v;
 };
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -33,6 +34,41 @@ ew::Vec3 bgColor = ew::Vec3(0.1f);
 
 ew::Camera camera;
 ew::CameraController cameraController;
+
+Vertex skyboxVertices[] =
+{
+	//Coordinates
+	-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,//       7--------6
+	 1.0f, -1.0f,  1.0f,  0.0f,  0.0f,//      /|       /|
+	 1.0f, -1.0f, -1.0f,  0.0f,  0.0f,//     4--------5 |
+	-1.0f, -1.0f, -1.0f,  0.0f,  0.0f,//     | |      | |
+	-1.0f,  1.0f,  1.0f,  0.0f,  0.0f,//     | 3------|-2
+	 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,//     |/       |/
+	 1.0f,  1.0f, -1.0f,  0.0f,  0.0f,//     0--------1
+	-1.0f,  1.0f, -1.0f,  0.0f,  0.0f
+};
+
+unsigned short skyboxIndices[] =
+{
+	//Right
+	1, 2, 6,
+	6, 5, 1,
+	//Left
+	0, 4, 7,
+	7, 3, 0,
+	//Top
+	4, 5, 6,
+	6, 7, 4,
+	//Bottom
+	0, 3, 2,
+	2, 1, 0,
+	//Back
+	0, 1, 5,
+	5, 4, 0,
+	//Front
+	3, 7, 6,
+	6, 2, 3
+};
 
 int main() {
 	printf("Initializing...");
@@ -72,6 +108,7 @@ int main() {
 	skyboxShader.use();
 	glUniform1i(glGetUniformLocation(skyboxShader.getID(), "skybox"), 0);
 
+	unsigned int skyboxVAO = createVAO(skyboxVertices, 8, skyboxIndices, 36);
 	ew::MeshData skybox = ew::createCube(5);
 
 	std::string facesCubemap[6] =
@@ -178,7 +215,16 @@ int main() {
 		ew::Mat4 projection = ew::Mat4(1.0f);
 		view = ew::Mat4(ew::LookAt(camera.position, camera.target, ew::Vec3(0, 1, 0)));
 		projection = ew::Perspective(ew::Radians(45.0f), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1, 100.f);
-		//glUniformMatrix4fv(glGetUniformLocation(skyboxShader.getID(), "view"), 1, GL_FALSE, )
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader.getID(), "view"), 1, GL_FALSE, &view[0][0]);
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader.getID(), "projection"), 1, GL_FALSE, &projection[0][0]);
+
+		glBindVertexArray(skyboxVAO);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+
+		glDepthFunc(GL_LESS);
 
 		//Render UI
 		{
