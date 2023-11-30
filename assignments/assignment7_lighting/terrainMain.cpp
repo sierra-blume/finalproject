@@ -67,6 +67,7 @@ int main() {
 
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
 	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
+	unsigned int heightMap = ew::loadTexture("assests/Terrain003_2K.png", GL_REPEAT, GL_LINEAR);
 
 	ew::MeshData skybox = ew::createCube(5);
 
@@ -114,8 +115,10 @@ int main() {
 		}
 	}
 
-	ew::MeshData terrainMeshData = ew::createPlane(10.0f, 10.0f, 100.0);
+	ew::MeshData terrainMeshData = ew::createPlane(10.0f, 10.0f, 512.0);
 	ew::Mesh terrainMesh(terrainMeshData);
+
+	
 
 	////Create cube
 	//ew::Mesh cubeMesh(ew::createCube(1.0f));
@@ -150,8 +153,8 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
-		glBindTexture(GL_TEXTURE_2D, brickTexture);
-		shader.setInt("_Texture", 0);
+		glBindTexture(GL_TEXTURE_2D, heightMap);
+		shader.setInt("_HeightMap", 0);
 		shader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
 
 		////Draw shapes

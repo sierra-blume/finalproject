@@ -5,8 +5,9 @@ in Surface{
 	vec2 UV;
 }fs_in;
 
-uniform sampler2D _Texture;
+uniform sampler2D _HeightMap;
 
 void main(){
-	FragColor = texture(_Texture,fs_in.UV);
+	//vec4 texColor = 
+	FragColor = texture(_HeightMap,fs_in.UV);
 }
