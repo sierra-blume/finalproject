@@ -24,7 +24,9 @@ struct Vertex {
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void resetCamera(ew::Camera& camera, ew::CameraController& cameraController);
+unsigned int loadCubemap(std::vector<std::string> faces);
 unsigned int createVAO(Vertex* vertexData, int numVertices, unsigned short* indicesData, int numIndices);
+unsigned int createSkyboxVAO(Vertex* vertexData, int numVertices);
 
 int SCREEN_WIDTH = 1080;
 int SCREEN_HEIGHT = 720;
@@ -35,39 +37,49 @@ ew::Vec3 bgColor = ew::Vec3(0.1f);
 ew::Camera camera;
 ew::CameraController cameraController;
 
-Vertex skyboxVertices[] =
-{
-	//Coordinates
-	-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,//       7--------6
-	 1.0f, -1.0f,  1.0f,  0.0f,  0.0f,//      /|       /|
-	 1.0f, -1.0f, -1.0f,  0.0f,  0.0f,//     4--------5 |
-	-1.0f, -1.0f, -1.0f,  0.0f,  0.0f,//     | |      | |
-	-1.0f,  1.0f,  1.0f,  0.0f,  0.0f,//     | 3------|-2
-	 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,//     |/       |/
-	 1.0f,  1.0f, -1.0f,  0.0f,  0.0f,//     0--------1
-	-1.0f,  1.0f, -1.0f,  0.0f,  0.0f
-};
+Vertex skyboxVertices[] = {
+	// positions          
+	-1.0f,  1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
 
-unsigned short skyboxIndices[] =
-{
-	//Right
-	1, 2, 6,
-	6, 5, 1,
-	//Left
-	0, 4, 7,
-	7, 3, 0,
-	//Top
-	4, 5, 6,
-	6, 7, 4,
-	//Bottom
-	0, 3, 2,
-	2, 1, 0,
-	//Back
-	0, 1, 5,
-	5, 4, 0,
-	//Front
-	3, 7, 6,
-	6, 2, 3
+	-1.0f, -1.0f,  1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f,  1.0f,
+	-1.0f, -1.0f,  1.0f,
+
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+
+	-1.0f, -1.0f,  1.0f,
+	-1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f, -1.0f,  1.0f,
+	-1.0f, -1.0f,  1.0f,
+
+	-1.0f,  1.0f, -1.0f,
+	 1.0f,  1.0f, -1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	-1.0f,  1.0f,  1.0f,
+	-1.0f,  1.0f, -1.0f,
+
+	-1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f,  1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f,  1.0f,
+	 1.0f, -1.0f,  1.0f
 };
 
 int main() {
@@ -105,13 +117,9 @@ int main() {
 	ew::Shader skyboxShader("assets/skybox.vert", "assets/skybox.frag");
 	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
 
-	skyboxShader.use();
-	glUniform1i(glGetUniformLocation(skyboxShader.getID(), "skybox"), 0);
+	unsigned int skyboxVAO = createSkyboxVAO(skyboxVertices, sizeof(skyboxVertices));
 
-	unsigned int skyboxVAO = createVAO(skyboxVertices, 8, skyboxIndices, 36);
-	ew::MeshData skybox = ew::createCube(5);
-
-	std::string facesCubemap[6] =
+	std::vector<std::string> faces =
 	{
 		"assets/skybox/right.jpg",
 		"assets/skybox/left.jpg",
@@ -120,55 +128,22 @@ int main() {
 		"assets/skybox/back.jpg",
 		"assets/skybox/front.jpg"
 	};
+	unsigned int cubemapTexture = loadCubemap(faces);
 
-	unsigned int cubemapTexture;
-	glGenTextures(1, &cubemapTexture);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	//Create cube
+	ew::Mesh cubeMesh(ew::createCube(1.0f));
+	ew::Mesh planeMesh(ew::createPlane(5.0f, 5.0f, 10));
+	ew::Mesh sphereMesh(ew::createSphere(0.5f, 64));
+	ew::Mesh cylinderMesh(ew::createCylinder(0.5f, 1.0f, 32));
 
-	for (unsigned int i = 0; i < 6; i++) {
-		int width, height, nrChannels;
-		unsigned char* data = stbi_load(facesCubemap[i].c_str(), &width, &height, &nrChannels, 0);
-		if (data) {
-			stbi_set_flip_vertically_on_load(false);
-			glTexImage2D
-			(
-				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0,
-				GL_RGB,
-				width,
-				height,
-				0,
-				GL_RGB,
-				GL_UNSIGNED_BYTE,
-				data
-			);
-			stbi_image_free(data);
-		}
-		else {
-			std::cout << "Failed to load texture: " << facesCubemap[i] << std::endl;
-			stbi_image_free(data);
-		}
-	}
-
-	////Create cube
-	//ew::Mesh cubeMesh(ew::createCube(1.0f));
-	//ew::Mesh planeMesh(ew::createPlane(5.0f, 5.0f, 10));
-	//ew::Mesh sphereMesh(ew::createSphere(0.5f, 64));
-	//ew::Mesh cylinderMesh(ew::createCylinder(0.5f, 1.0f, 32));
-
-	////Initialize transforms
-	//ew::Transform cubeTransform;
-	//ew::Transform planeTransform;
-	//ew::Transform sphereTransform;
-	//ew::Transform cylinderTransform;
-	//planeTransform.position = ew::Vec3(0, -1.0, 0);
-	//sphereTransform.position = ew::Vec3(-1.5f, 0.0f, 0.0f);
-	//cylinderTransform.position = ew::Vec3(1.5f, 0.0f, 0.0f);
+	//Initialize transforms
+	ew::Transform cubeTransform;
+	ew::Transform planeTransform;
+	ew::Transform sphereTransform;
+	ew::Transform cylinderTransform;
+	planeTransform.position = ew::Vec3(0, -1.0, 0);
+	sphereTransform.position = ew::Vec3(-1.5f, 0.0f, 0.0f);
+	cylinderTransform.position = ew::Vec3(1.5f, 0.0f, 0.0f);
 
 	resetCamera(camera,cameraController);
 
@@ -192,38 +167,33 @@ int main() {
 		shader.setInt("_Texture", 0);
 		shader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
 
-		////Draw shapes
-		//shader.setMat4("_Model", cubeTransform.getModelMatrix());
-		//cubeMesh.draw();
+		//Draw shapes
+		shader.setMat4("_Model", cubeTransform.getModelMatrix());
+		cubeMesh.draw();
 
-		//shader.setMat4("_Model", planeTransform.getModelMatrix());
-		//planeMesh.draw();
+		shader.setMat4("_Model", planeTransform.getModelMatrix());
+		planeMesh.draw();
 
-		//shader.setMat4("_Model", sphereTransform.getModelMatrix());
-		//sphereMesh.draw();
+		shader.setMat4("_Model", sphereTransform.getModelMatrix());
+		sphereMesh.draw();
 
-		//shader.setMat4("_Model", cylinderTransform.getModelMatrix());
-		//cylinderMesh.draw();
+		shader.setMat4("_Model", cylinderTransform.getModelMatrix());
+		cylinderMesh.draw();
 
-		//TODO: Render point lights
-
-		//Draw the skybox
+		//Draw skybox
 		glDepthFunc(GL_LEQUAL);
-
 		skyboxShader.use();
-		ew::Mat4 view = ew::Mat4(1.0f);
-		ew::Mat4 projection = ew::Mat4(1.0f);
-		view = ew::Mat4(ew::LookAt(camera.position, camera.target, ew::Vec3(0, 1, 0)));
-		projection = ew::Perspective(ew::Radians(45.0f), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1, 100.f);
-		glUniformMatrix4fv(glGetUniformLocation(skyboxShader.getID(), "view"), 1, GL_FALSE, &view[0][0]);
-		glUniformMatrix4fv(glGetUniformLocation(skyboxShader.getID(), "projection"), 1, GL_FALSE, &projection[0][0]);
+		skyboxShader.setInt("skybox", 0);
+		//Set view and projection matrix
+		ew::Mat4 view = ew::Mat4(camera.ViewMatrix());
+		skyboxShader.setMat4("view", view);
+		skyboxShader.setMat4("projection", camera.ProjectionMatrix());
 
 		glBindVertexArray(skyboxVAO);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
-
 		glDepthFunc(GL_LESS);
 
 		//Render UI
@@ -284,6 +254,36 @@ void resetCamera(ew::Camera& camera, ew::CameraController& cameraController) {
 	cameraController.pitch = 0.0f;
 }
 
+unsigned int loadCubemap(std::vector<std::string> faces)
+{
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrComponents;
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrComponents, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+		}
+		else
+		{
+			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
+}
+
 unsigned int createVAO(Vertex* vertexData, int numVertices, unsigned short* indicesData, int numIndices) {
 	unsigned int vao;
 	glGenVertexArrays(1, &vao);
@@ -310,4 +310,17 @@ unsigned int createVAO(Vertex* vertexData, int numVertices, unsigned short* indi
 	glEnableVertexAttribArray(1);
 
 	return vao;
+}
+
+unsigned int createSkyboxVAO(Vertex* vertexData, int numVertices) {
+	unsigned int skyboxVAO, skyboxVBO;
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, numVertices, &vertexData, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	return skyboxVAO;
 }
