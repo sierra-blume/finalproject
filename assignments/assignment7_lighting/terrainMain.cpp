@@ -19,6 +19,7 @@
 
 struct Vertex {
 	float x, y, z;
+	float u, v;
 };
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -66,74 +67,14 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
-	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
-	unsigned int heightMap = ew::loadTexture("assests/Terrain003_2K.png", GL_REPEAT, GL_LINEAR);
+	unsigned int heightMap = ew::loadTexture("assets/HeightMap.png", GL_REPEAT, GL_LINEAR);
+	unsigned int groundTexture = ew::loadTexture("assets/GrassTexture.jpg", GL_REPEAT, GL_LINEAR);
+	unsigned int rockTexture = ew::loadTexture("assets/RockTexture.jpg", GL_REPEAT, GL_LINEAR);
+	unsigned int snowTexture = ew::loadTexture("assets/SnowTexture.jpg", GL_REPEAT, GL_LINEAR);
 
-	ew::MeshData skybox = ew::createCube(5);
-
-	std::string facesCubemap[6] =
-	{
-		"assets/skybox/right.jpg",
-		"assets/skybox/left.jpg",
-		"assets/skybox/top.jpg",
-		"assets/skybox/bottom.jpg",
-		"assets/skybox/back.jpg",
-		"assets/skybox/front.jpg"
-	};
-
-	unsigned int cubemapTexture;
-	glGenTextures(1, &cubemapTexture);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-	for (unsigned int i = 0; i < 6; i++) {
-		int width, height, nrChannels;
-		unsigned char* data = stbi_load(facesCubemap[i].c_str(), &width, &height, &nrChannels, 0);
-		if (data) {
-			stbi_set_flip_vertically_on_load(false);
-			glTexImage2D
-			(
-				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0,
-				GL_RGB,
-				width,
-				height,
-				0,
-				GL_RGB,
-				GL_UNSIGNED_BYTE,
-				data
-			);
-			stbi_image_free(data);
-		}
-		else {
-			std::cout << "Failed to load texture: " << facesCubemap[i] << std::endl;
-			stbi_image_free(data);
-		}
-	}
-
-	ew::MeshData terrainMeshData = ew::createPlane(10.0f, 10.0f, 512.0);
+	ew::MeshData terrainMeshData = ew::createPlane(10.0f, 10.0f, 10.0);
 	ew::Mesh terrainMesh(terrainMeshData);
-
-	
-
-	////Create cube
-	//ew::Mesh cubeMesh(ew::createCube(1.0f));
-	//ew::Mesh planeMesh(ew::createPlane(5.0f, 5.0f, 10));
-	//ew::Mesh sphereMesh(ew::createSphere(0.5f, 64));
-	//ew::Mesh cylinderMesh(ew::createCylinder(0.5f, 1.0f, 32));
-
-	////Initialize transforms
-	//ew::Transform cubeTransform;
-	//ew::Transform planeTransform;
-	//ew::Transform sphereTransform;
-	//ew::Transform cylinderTransform;
-	//planeTransform.position = ew::Vec3(0, -1.0, 0);
-	//sphereTransform.position = ew::Vec3(-1.5f, 0.0f, 0.0f);
-	//cylinderTransform.position = ew::Vec3(1.5f, 0.0f, 0.0f);
+	ew::Transform terrainTransform;
 
 	resetCamera(camera,cameraController);
 
@@ -153,24 +94,26 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, heightMap);
 		shader.setInt("_HeightMap", 0);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, groundTexture);
+		shader.setInt("_GrassTexture", 1);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, rockTexture);
+		shader.setInt("_RockTexture", 2);
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, snowTexture);
+		shader.setInt("_SnowTexture", 3);
+
+
 		shader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
-
-		////Draw shapes
-		//shader.setMat4("_Model", cubeTransform.getModelMatrix());
-		//cubeMesh.draw();
-
-		//shader.setMat4("_Model", planeTransform.getModelMatrix());
-		//planeMesh.draw();
-
-		//shader.setMat4("_Model", sphereTransform.getModelMatrix());
-		//sphereMesh.draw();
-
-		//shader.setMat4("_Model", cylinderTransform.getModelMatrix());
-		//cylinderMesh.draw();
-
-		//TODO: Render point lights
+		shader.setMat4("_Model", terrainTransform.getModelMatrix());
+		terrainMesh.draw();
 
 		//Render UI
 		{
@@ -218,7 +161,7 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 }
 
 void resetCamera(ew::Camera& camera, ew::CameraController& cameraController) {
-	camera.position = ew::Vec3(0, 0, 5);
+	camera.position = ew::Vec3(0, 5, 5);
 	camera.target = ew::Vec3(0);
 	camera.fov = 60.0f;
 	camera.orthoHeight = 6.0f;

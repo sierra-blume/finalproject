@@ -1,4 +1,4 @@
-#include <stdio.h>
+/*#include <stdio.h>
 #include <math.h>
 
 #include <ew/external/glad.h>
@@ -311,3 +311,4 @@ unsigned int createVAO(Vertex* vertexData, int numVertices, unsigned short* indi
 
 	return vao;
 }
+*/
