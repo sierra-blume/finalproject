@@ -15,7 +15,7 @@ uniform sampler2D _HeightMap;
 
 void main(){
 	vs_out.UV = vUV;
-	//vec4 heightColor = texture(_HeightMap, vUV);
-	//vs_out.newPos = vPos + vec3(0, heightColor.r * 2, 0);
-	gl_Position = _ViewProjection * _Model * vec4(vPos,1.0);
+	vec4 heightColor = texture(_HeightMap, vUV);
+	vs_out.newPos = vPos + vec3(0, heightColor.r * 10, 0);
+	gl_Position = _ViewProjection * _Model * vec4(vs_out.newPos, 1.0);
 }

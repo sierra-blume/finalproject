@@ -11,8 +11,31 @@ uniform sampler2D _RockTexture;
 uniform sampler2D _SnowTexture;
 
 void main(){
-	//vec4 grassColor = texture(_GrassTexture, fs_in.UV);
-	//vec4 rockColor = texture(_RockTexture, fs_in.UV);
-	//vec4 snowColor = texture(_SnowTexture, fs_in.UV);
-	FragColor = texture(_GrassTexture,fs_in.UV);
+	vec2 uv = fs_in.UV;
+
+	vec4 grassColor = texture(_GrassTexture, uv);
+	vec4 rockColor = texture(_RockTexture, uv);
+	vec4 snowColor = texture(_SnowTexture, uv);
+	vec4 finalColor = grassColor;
+	
+	if (fs_in.newPos.y > 3.5 && fs_in.newPos.y <= 4)
+	{
+		finalColor = mix(grassColor, rockColor, (fs_in.newPos.y - 3.5) / 0.5);
+	}
+
+	else if (fs_in.newPos.y > 4  && fs_in.newPos.y <= 8.5)
+	{
+		finalColor = rockColor;
+	}
+
+	else if (fs_in.newPos.y > 8.5 && fs_in.newPos.y <= 9)
+	{
+		finalColor = mix(rockColor, snowColor, (fs_in.newPos.y - 8.5) / 0.5);
+	}
+
+	else if (fs_in.newPos.y > 9)
+	{
+		finalColor = snowColor;
+	}
+	FragColor = finalColor;
 }

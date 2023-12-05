@@ -72,7 +72,7 @@ int main() {
 	unsigned int rockTexture = ew::loadTexture("assets/RockTexture.jpg", GL_REPEAT, GL_LINEAR);
 	unsigned int snowTexture = ew::loadTexture("assets/SnowTexture.jpg", GL_REPEAT, GL_LINEAR);
 
-	ew::MeshData terrainMeshData = ew::createPlane(10.0f, 10.0f, 10.0);
+	ew::MeshData terrainMeshData = ew::createPlane(50.0f, 50.0f, 512.0);
 	ew::Mesh terrainMesh(terrainMeshData);
 	ew::Transform terrainTransform;
 
