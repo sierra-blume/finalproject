@@ -35,8 +35,7 @@ ew::Vec3 bgColor = ew::Vec3(0.1f);
 ew::Camera camera;
 ew::CameraController cameraController;
 
-float skyboxVertices[] = {
-	// positions          
+float skyboxVertices[] = { //Ryan: The positions of each of the skybox's face vertices       
 	-1.0f,  1.0f, -1.0f,
 	-1.0f, -1.0f, -1.0f,
 	 1.0f, -1.0f, -1.0f,
@@ -107,14 +106,23 @@ int main() {
 	ImGui_ImplOpenGL3_Init();
 
 	//Global settings
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glEnable(GL_DEPTH_TEST);
 
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
 	ew::Shader skyboxShader("assets/skybox.vert", "assets/skybox.frag");
-	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
 
+	unsigned int heightMap = ew::loadTexture("assets/HeightMap.png", GL_REPEAT, GL_LINEAR);
+	unsigned int groundTexture = ew::loadTexture("assets/GrassTexture.jpg", GL_REPEAT, GL_LINEAR);
+	unsigned int rockTexture = ew::loadTexture("assets/RockTexture.jpg", GL_REPEAT, GL_LINEAR);
+	unsigned int snowTexture = ew::loadTexture("assets/SnowTexture.jpg", GL_REPEAT, GL_LINEAR);
+
+	ew::MeshData terrainMeshData = ew::createPlane(50.0f, 50.0f, 512.0);
+	ew::Mesh terrainMesh(terrainMeshData);
+	ew::Transform terrainTransform;
+
+	//Ryan: Create the skybox's VAO
 	unsigned int skyboxVAO, skyboxVBO;
 	glGenVertexArrays(1, &skyboxVAO);
 	glGenBuffers(1, &skyboxVBO);
@@ -124,6 +132,7 @@ int main() {
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
+	//Ryan: Grab the images being used on each face of the skybox (must be in this order, check loadCubemap function for why)
 	std::vector<std::string> faces =
 	{
 		"assets/skybox/right.jpg",
@@ -133,22 +142,7 @@ int main() {
 		"assets/skybox/front.jpg",
 		"assets/skybox/back.jpg"
 	};
-	unsigned int cubemapTexture = loadCubemap(faces);
-
-	//Create cube
-	ew::Mesh cubeMesh(ew::createCube(1.0f));
-	ew::Mesh planeMesh(ew::createPlane(5.0f, 5.0f, 10));
-	ew::Mesh sphereMesh(ew::createSphere(0.5f, 64));
-	ew::Mesh cylinderMesh(ew::createCylinder(0.5f, 1.0f, 32));
-
-	//Initialize transforms
-	ew::Transform cubeTransform;
-	ew::Transform planeTransform;
-	ew::Transform sphereTransform;
-	ew::Transform cylinderTransform;
-	planeTransform.position = ew::Vec3(0, -1.0, 0);
-	sphereTransform.position = ew::Vec3(-1.5f, 0.0f, 0.0f);
-	cylinderTransform.position = ew::Vec3(1.5f, 0.0f, 0.0f);
+	unsigned int cubemapTexture = loadCubemap(faces); //Ryan: Turn these faces into a texture
 
 	resetCamera(camera,cameraController);
 
@@ -167,11 +161,19 @@ int main() {
 		glClearColor(bgColor.x, bgColor.y,bgColor.z,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//Draw skybox
+		//Ryan: Draw skybox
 		glDepthMask(GL_FALSE);
 		skyboxShader.use();
 		skyboxShader.setInt("skybox", 0);
 
+		/* Ryan: 
+		Create the view matrix for the skybox
+		- Because we want the skybox to be centered on the camera, we have to remove the
+		  translation portion of the view matrix.
+		- To do this, we simply take the top-left 3x3 matrix of the view matrix. This keeps
+		  rotation and sacling, but removes translation so the skybox is now centered on the
+		  camera and moves with it.
+		*/
 		ew::Mat4 view = {
 			camera.ViewMatrix()[0][0], camera.ViewMatrix()[1][0], camera.ViewMatrix()[2][0], 0,
 			camera.ViewMatrix()[0][1], camera.ViewMatrix()[1][1], camera.ViewMatrix()[2][1], 0,
@@ -179,31 +181,37 @@ int main() {
 			                        0,                         0,                         0, 1
 		};
 
+		//Ryan: Set the view and projection matrices for the skybox's VAO
 		skyboxShader.setMat4("view", view);
 		skyboxShader.setMat4("projection", camera.ProjectionMatrix());
 		
+		//Ryan: Wrap the skybox's texture around a cube using the skybox's VAO
 		glBindVertexArray(skyboxVAO);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glDepthMask(GL_TRUE);
 
+		//Draw terrain
 		shader.use();
-		glBindTexture(GL_TEXTURE_2D, brickTexture);
-		shader.setInt("_Texture", 0);
-		shader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, heightMap);
+		shader.setInt("_HeightMap", 0);
 
-		//Draw shapes
-		shader.setMat4("_Model", cubeTransform.getModelMatrix());
-		cubeMesh.draw();
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, groundTexture);
+		shader.setInt("_GrassTexture", 1);
 
-		shader.setMat4("_Model", planeTransform.getModelMatrix());
-		planeMesh.draw();
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, rockTexture);
+		shader.setInt("_RockTexture", 2);
 
-		shader.setMat4("_Model", sphereTransform.getModelMatrix());
-		sphereMesh.draw();
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, snowTexture);
+		shader.setInt("_SnowTexture", 3);
 
-		shader.setMat4("_Model", cylinderTransform.getModelMatrix());
-		cylinderMesh.draw();
+		shader.setMat4("_ViewProjection", camera.ProjectionMatrix()* camera.ViewMatrix());
+		shader.setMat4("_Model", terrainTransform.getModelMatrix());
+		terrainMesh.draw();
 
 		//Render UI
 		{
@@ -270,20 +278,35 @@ unsigned int loadCubemap(std::vector<std::string> faces)
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
 	int width, height, nrComponents;
-	for (unsigned int i = 0; i < faces.size(); i++)
+	for (unsigned int i = 0; i < faces.size(); i++) //Ryan: We use faces.size() in order to call the following code for each face of the skybox
 	{
-		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrComponents, 0);
-		if (data)
+		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrComponents, 0); //Ryan: Load the data
+		if (data) //Ryan: Check if the data exists
 		{
+			/* Ryan:
+			If so, apply the texture's target
+			- For cubemaps, there are six different texture target functions we can call:
+				GL_TEXTURE_CUBE_MAP_POSITIVE_X, for right orientation
+				GL_TEXTURE_CUBE_MAP_NEGATIVE_X, for left orientation
+				GL_TEXTURE_CUBE_MAP_POSITIVE_Y, for top orientation
+				GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, for bottom orientation
+				GL_TEXTURE_CUBE_MAP_POSITIVE_Z, for back orientation
+				GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, for front orientation
+			- By calling GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, we start at right orientation for first pass through the for loop,
+			  but after every pass, the + i sends it to the next orientation function call. For example, when i = 1,
+			  GL_TEXTURE_CUBE_MAP_POSITIVE_X + i will return with GL_TEXTURE_CUBE_MAP_NEGATIVE_X, which gives us left orientation.
+			- For this reason, the order in which we pass through our skybox images is important, as mentioned previously in the array.
+			*/
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 			stbi_image_free(data);
 		}
 		else
 		{
-			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl; //Ryan: If not, throw an error
 			stbi_image_free(data);
 		}
 	}
+	//Ryan: Specify the texture's wrapping and filtering methods
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
