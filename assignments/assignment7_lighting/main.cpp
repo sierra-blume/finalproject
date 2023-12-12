@@ -172,7 +172,14 @@ int main() {
 		skyboxShader.use();
 		skyboxShader.setInt("skybox", 0);
 
-		skyboxShader.setMat4("view", camera.ViewMatrix());
+		ew::Mat4 view = {
+			camera.ViewMatrix()[0][0], camera.ViewMatrix()[1][0], camera.ViewMatrix()[2][0], 0,
+			camera.ViewMatrix()[0][1], camera.ViewMatrix()[1][1], camera.ViewMatrix()[2][1], 0,
+			camera.ViewMatrix()[0][2], camera.ViewMatrix()[1][2], camera.ViewMatrix()[2][2], 0,
+			                        0,                         0,                         0, 1
+		};
+
+		skyboxShader.setMat4("view", view);
 		skyboxShader.setMat4("projection", camera.ProjectionMatrix());
 		
 		glBindVertexArray(skyboxVAO);
