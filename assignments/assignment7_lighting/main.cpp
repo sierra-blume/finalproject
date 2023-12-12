@@ -25,7 +25,6 @@ struct Vertex {
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void resetCamera(ew::Camera& camera, ew::CameraController& cameraController);
 unsigned int loadCubemap(std::vector<std::string> faces);
-unsigned int createVAO(float* vertexData, int numVertices);
 
 int SCREEN_WIDTH = 1080;
 int SCREEN_HEIGHT = 720;
@@ -116,7 +115,14 @@ int main() {
 	ew::Shader skyboxShader("assets/skybox.vert", "assets/skybox.frag");
 	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
 
-	unsigned int skyboxVAO = createVAO(skyboxVertices, sizeof(skyboxVertices));
+	unsigned int skyboxVAO, skyboxVBO;
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
 	std::vector<std::string> faces =
 	{
@@ -165,7 +171,10 @@ int main() {
 		glDepthMask(GL_FALSE);
 		skyboxShader.use();
 		skyboxShader.setInt("skybox", 0);
-		//Set view and projection matrix
+
+		skyboxShader.setMat4("view", camera.ViewMatrix());
+		skyboxShader.setMat4("projection", camera.ProjectionMatrix());
+		
 		glBindVertexArray(skyboxVAO);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -275,22 +284,4 @@ unsigned int loadCubemap(std::vector<std::string> faces)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 	return textureID;
-}
-
-unsigned int createVAO(float* vertexData, int numVertices) {
-	unsigned int vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, numVertices, vertexData, GL_STATIC_DRAW);
-
-	unsigned int vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-	//Position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (const void*)0);
-	glEnableVertexAttribArray(0);
-
-	return vao;
 }
