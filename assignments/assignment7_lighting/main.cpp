@@ -79,6 +79,21 @@ float skyboxVertices[] = { //Ryan: The positions of each of the skybox's face ve
 	 1.0f, -1.0f,  1.0f
 };
 
+struct AppSettings {
+	const char* shadingModeNames[6] = { "Solid Color","Normals","UVs","Texture","Lit","Texture Lit" };
+	int shadingModeIndex;
+
+	ew::Vec3 bgColor = ew::Vec3(0.1f);
+	ew::Vec3 shapeColor = ew::Vec3(1.0f);
+	bool wireframe = false;
+	bool drawAsPoints = false;
+	bool backFaceCulling = false;
+
+	//Euler angles (degrees)
+	ew::Vec3 lightRotation = ew::Vec3(0, 0, 0);
+}appSettings;
+
+
 int main() {
 	printf("Initializing...");
 	if (!glfwInit()) {
@@ -112,6 +127,7 @@ int main() {
 
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
 	ew::Shader skyboxShader("assets/skybox.vert", "assets/skybox.frag");
+	ew::Shader waterShader("assets/Watervert.vert", "assets/Waterfrag.frag");
 
 	//Sierra: Initializing all the height maps and textures
 	unsigned int heightMapMain = ew::loadTexture("assets/HeightMap1.png", GL_REPEAT, GL_LINEAR);
@@ -122,10 +138,24 @@ int main() {
 	unsigned int rockTexture = ew::loadTexture("assets/RockTexture.jpg", GL_REPEAT, GL_LINEAR);
 	unsigned int snowTexture = ew::loadTexture("assets/SnowTexture.jpg", GL_REPEAT, GL_LINEAR);
 
+	unsigned int normalMap = ew::loadTexture("assets/SnowTexture.jpg", GL_REPEAT, GL_LINEAR);
+
 	//Sierra: Creating the base plane for the terrain
 	ew::MeshData terrainMeshData = ew::createPlane(500.0f, 500.0f, 1000.0);
 	ew::Mesh terrainMesh(terrainMeshData);
 	ew::Transform terrainTransform;
+
+	//Lucas: create the mesh for the water and the transformation
+	ew::MeshData waterMeshData = ew::createPlane(145.0f, 140.0f, 10);
+	ew::Mesh waterMesh(waterMeshData);
+	ew::Transform waterTransform;
+	waterTransform.position = ew::Vec3(20.0, 53.0, 50.0);
+
+	// Lucas: variables for water properties
+	float xScroll = 100;
+	float yScroll = 100;
+	float mixVal = 0.15;
+
 
 	//Ryan: Create the skybox's VAO
 	unsigned int skyboxVAO, skyboxVBO;
@@ -229,6 +259,31 @@ int main() {
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, heightMapMain);
 			shader.setInt("_HeightMap", 0);
+
+			//Lucas: DRAW WATER
+			waterShader.use();
+
+			//Lucas: Set water uniforms
+			waterShader.setFloat("_Time", time);
+			waterShader.setFloat("xScroll", xScroll);
+			waterShader.setFloat("yScroll", yScroll);
+			waterShader.setFloat("_mixVal", mixVal);
+			waterShader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
+			waterShader.setVec3("_CameraPos", camera.position);
+
+			waterShader.setInt("_Texture", 0);
+			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_2D, normalMap);
+
+			waterShader.setInt("_normalMap", 4);
+			ew::Vec3 lightRot = appSettings.lightRotation * ew::DEG2RAD;
+			ew::Vec3 lightF = ew::Vec3(sinf(lightRot.y) * cosf(lightRot.x), sinf(lightRot.x), -cosf(lightRot.y) * cosf(lightRot.x));
+			waterShader.setVec3("_LightDir", lightF);
+
+			waterShader.setMat4("_Model", waterTransform.getModelMatrix());
+
+			waterMesh.draw();
+			shader.use();
 		}
 
 		//Sierra: Binding all the textures so that they can be called and used in the fragment shader
@@ -301,6 +356,10 @@ int main() {
 			}
 
 			ImGui::ColorEdit3("BG color", &bgColor.x);
+			ImGui::DragFloat("xScroll", &xScroll, 0.1f, 0.0f);
+			ImGui::DragFloat("yScroll", &yScroll, 0.1f, 0.0f);
+			ImGui::DragFloat("mixVal", &mixVal, 0.01f, 0.0f, 1.0f);
+
 			ImGui::End();
 			
 			ImGui::Render();
