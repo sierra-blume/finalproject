@@ -18,22 +18,22 @@ void main(){
 	vec4 snowColor = texture(_SnowTexture, uv);
 	vec4 finalColor = grassColor;
 	
-	if (fs_in.newPos.y > 3.5 && fs_in.newPos.y <= 4)
+	if (fs_in.newPos.y > 30.5 && fs_in.newPos.y <= 40)
 	{
-		finalColor = mix(grassColor, rockColor, (fs_in.newPos.y - 3.5) / 0.5);
+		finalColor = mix(grassColor, rockColor, (fs_in.newPos.y - 30.5) / 9.5);
 	}
 
-	else if (fs_in.newPos.y > 4  && fs_in.newPos.y <= 8.5)
+	else if (fs_in.newPos.y > 40  && fs_in.newPos.y <= 80.5)
 	{
 		finalColor = rockColor;
 	}
 
-	else if (fs_in.newPos.y > 8.5 && fs_in.newPos.y <= 9)
+	else if (fs_in.newPos.y > 80.5 && fs_in.newPos.y <= 90)
 	{
-		finalColor = mix(rockColor, snowColor, (fs_in.newPos.y - 8.5) / 0.5);
+		finalColor = mix(rockColor, snowColor, (fs_in.newPos.y - 80.5) / 9.5);
 	}
 
-	else if (fs_in.newPos.y > 9)
+	else if (fs_in.newPos.y > 90)
 	{
 		finalColor = snowColor;
 	}

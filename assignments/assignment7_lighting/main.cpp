@@ -113,12 +113,16 @@ int main() {
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
 	ew::Shader skyboxShader("assets/skybox.vert", "assets/skybox.frag");
 
-	unsigned int heightMap = ew::loadTexture("assets/HeightMap.png", GL_REPEAT, GL_LINEAR);
+	//////////////
+	unsigned int heightMapMain = ew::loadTexture("assets/HeightMap1.png", GL_REPEAT, GL_LINEAR);
+	unsigned int heightMap2 = ew::loadTexture("assets/HeightMap2.png", GL_REPEAT, GL_LINEAR);
+	unsigned int heightMap3 = ew::loadTexture("assets/HeightMap3.png", GL_REPEAT, GL_LINEAR);
+	unsigned int heightMap4 = ew::loadTexture("assets/HeightMap4.png", GL_REPEAT, GL_LINEAR);
 	unsigned int groundTexture = ew::loadTexture("assets/GrassTexture.jpg", GL_REPEAT, GL_LINEAR);
 	unsigned int rockTexture = ew::loadTexture("assets/RockTexture.jpg", GL_REPEAT, GL_LINEAR);
 	unsigned int snowTexture = ew::loadTexture("assets/SnowTexture.jpg", GL_REPEAT, GL_LINEAR);
 
-	ew::MeshData terrainMeshData = ew::createPlane(50.0f, 50.0f, 512.0);
+	ew::MeshData terrainMeshData = ew::createPlane(500.0f, 500.0f, 1000.0);
 	ew::Mesh terrainMesh(terrainMeshData);
 	ew::Transform terrainTransform;
 
@@ -145,6 +149,12 @@ int main() {
 	unsigned int cubemapTexture = loadCubemap(faces); //Ryan: Turn these faces into a texture
 
 	resetCamera(camera,cameraController);
+
+	//////////
+	bool heightMapChoice1 = true;
+	bool heightMapChoice2 = false;
+	bool heightMapChoice3 = false;
+	bool heightMapChoice4 = false;
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -193,9 +203,30 @@ int main() {
 
 		//Draw terrain
 		shader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, heightMap);
-		shader.setInt("_HeightMap", 0);
+		////////////////////////
+		if (heightMapChoice2)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, heightMap2);
+			shader.setInt("_HeightMap", 0);
+		}
+		else if (heightMapChoice3)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, heightMap3);
+			shader.setInt("_HeightMap", 0);
+		}
+		else if (heightMapChoice4)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, heightMap4);
+			shader.setInt("_HeightMap", 0);
+		}
+		else {
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, heightMapMain);
+			shader.setInt("_HeightMap", 0);
+		}
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, groundTexture);
@@ -239,6 +270,30 @@ int main() {
 				}
 			}
 
+			///////////////
+			if (ImGui::CollapsingHeader("Height Map Select")) {
+				if (ImGui::Checkbox("HeightMapMain", &heightMapChoice1)) {
+					heightMapChoice2 = false;
+					heightMapChoice3 = false;
+					heightMapChoice4 = false;
+				}
+				if (ImGui::Checkbox("HeightMap2", &heightMapChoice2)) {
+					heightMapChoice1 = false;
+					heightMapChoice3 = false;
+					heightMapChoice4 = false;
+				}
+				if (ImGui::Checkbox("HeightMap3", &heightMapChoice3)) {
+					heightMapChoice1 = false;
+					heightMapChoice2 = false;
+					heightMapChoice4 = false;
+				}
+				if (ImGui::Checkbox("HeightMap4", &heightMapChoice4)) {
+					heightMapChoice1 = false;
+					heightMapChoice2 = false;
+					heightMapChoice3 = false;
+				}
+			}
+
 			ImGui::ColorEdit3("BG color", &bgColor.x);
 			ImGui::End();
 			
@@ -259,12 +314,12 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 }
 
 void resetCamera(ew::Camera& camera, ew::CameraController& cameraController) {
-	camera.position = ew::Vec3(0, 0, 5);
+	camera.position = ew::Vec3(0, 100, 5);
 	camera.target = ew::Vec3(0);
 	camera.fov = 60.0f;
 	camera.orthoHeight = 6.0f;
 	camera.nearPlane = 0.1f;
-	camera.farPlane = 100.0f;
+	camera.farPlane = 1000.0f;
 	camera.orthographic = false;
 
 	cameraController.yaw = 0.0f;
