@@ -113,7 +113,7 @@ int main() {
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
 	ew::Shader skyboxShader("assets/skybox.vert", "assets/skybox.frag");
 
-	//////////////
+	//Sierra: Initializing all the height maps and textures
 	unsigned int heightMapMain = ew::loadTexture("assets/HeightMap1.png", GL_REPEAT, GL_LINEAR);
 	unsigned int heightMap2 = ew::loadTexture("assets/HeightMap2.png", GL_REPEAT, GL_LINEAR);
 	unsigned int heightMap3 = ew::loadTexture("assets/HeightMap3.png", GL_REPEAT, GL_LINEAR);
@@ -122,6 +122,7 @@ int main() {
 	unsigned int rockTexture = ew::loadTexture("assets/RockTexture.jpg", GL_REPEAT, GL_LINEAR);
 	unsigned int snowTexture = ew::loadTexture("assets/SnowTexture.jpg", GL_REPEAT, GL_LINEAR);
 
+	//Sierra: Creating the base plane for the terrain
 	ew::MeshData terrainMeshData = ew::createPlane(500.0f, 500.0f, 1000.0);
 	ew::Mesh terrainMesh(terrainMeshData);
 	ew::Transform terrainTransform;
@@ -150,7 +151,7 @@ int main() {
 
 	resetCamera(camera,cameraController);
 
-	//////////
+	//Sierra: Creating boolean values for ImGui controls later
 	bool heightMapChoice1 = true;
 	bool heightMapChoice2 = false;
 	bool heightMapChoice3 = false;
@@ -203,7 +204,9 @@ int main() {
 
 		//Draw terrain
 		shader.use();
-		////////////////////////
+
+		//Sierra: Using boolean values to determine which height map should be rendered based
+		//on values linked to ImGui controls which update every time the scene is rendered
 		if (heightMapChoice2)
 		{
 			glActiveTexture(GL_TEXTURE0);
@@ -228,6 +231,7 @@ int main() {
 			shader.setInt("_HeightMap", 0);
 		}
 
+		//Sierra: Binding all the textures so that they can be called and used in the fragment shader
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, groundTexture);
 		shader.setInt("_GrassTexture", 1);
@@ -239,6 +243,7 @@ int main() {
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, snowTexture);
 		shader.setInt("_SnowTexture", 3);
+
 
 		shader.setMat4("_ViewProjection", camera.ProjectionMatrix()* camera.ViewMatrix());
 		shader.setMat4("_Model", terrainTransform.getModelMatrix());
@@ -270,7 +275,8 @@ int main() {
 				}
 			}
 
-			///////////////
+			//Sierra: ImGui controls to toggle between the height map options.
+			//Also code to make sure only 1 height map is selected at a time.
 			if (ImGui::CollapsingHeader("Height Map Select")) {
 				if (ImGui::Checkbox("HeightMapMain", &heightMapChoice1)) {
 					heightMapChoice2 = false;
@@ -314,6 +320,7 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 }
 
 void resetCamera(ew::Camera& camera, ew::CameraController& cameraController) {
+	//Sierra: Changed the default settings of position and far plane to better suit how the terrain size
 	camera.position = ew::Vec3(0, 100, 5);
 	camera.target = ew::Vec3(0);
 	camera.fov = 60.0f;

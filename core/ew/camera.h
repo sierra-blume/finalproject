@@ -4,6 +4,7 @@
 namespace ew {
 
 	struct Camera {
+		//Sierra: Changed the default settings of position and far plane to better suit how the terrain size
 		ew::Vec3 position = ew::Vec3(0.0f, 100.0f, 5.0f);
 		ew::Vec3 target = ew::Vec3(0.0f);
 
